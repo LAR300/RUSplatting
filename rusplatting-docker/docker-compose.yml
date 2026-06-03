@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  rusplatting:
+    build: .
+    container_name: rusplatting_env
+    # Mount the local dataset into the container's workspace
+    volumes:
+      - ./datasets/Submerged3D:/workspace/RUSplatting/datasets/Submerged3D
+      - ./datasets/brs_container:/workspace/RUSplatting/datasets/brs_container
+      - ./host_outputs:/workspace/RUSplatting/host_outputs
+      
+    command: tail -f /dev/null
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              # The 'graphics' capability is required for Vulkan to access the GPU
+              capabilities: [gpu, compute, video, utility, graphics]
