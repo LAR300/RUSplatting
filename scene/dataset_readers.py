@@ -198,10 +198,26 @@ def readColmapSceneInfo(path, images, depth, eval, args, llffhold=8, render_mode
     if eval:
         # Tag the non-interpolated frames
         original_frames = [c for c in cam_infos if not c.is_interpolated]
-        
-        # The test set will only be selected from the non-interpolated frames
-        test_cam_infos = [c for idx, c in enumerate(original_frames) if idx % llffhold == 0]
-        
+
+        # BANCADA (B10): com BENCH_EVAL_VIEWS a divisao vem de um ficheiro e e
+        # a MESMA em todos os metodos do banco. O idx % llffhold daqui, o
+        # idx % 8 do gaussianSplashing e o eval_interval do nerfstudio dao
+        # conjuntos diferentes -- medido entre dois deles: 3 vistas em comum de
+        # 14. Isso e uma diferenca de TREINO, nao de renderizacao, e torna o
+        # A/B uma comparacao de conjuntos. Sem a variavel nada muda.
+        _fixa = os.environ.get("BENCH_EVAL_VIEWS")
+        if _fixa and os.path.isfile(_fixa):
+            import json as _json
+            with open(_fixa) as _f:
+                _ev = set(_json.load(_f)["eval"])
+            test_cam_infos = [c for c in original_frames
+                              if os.path.basename(c.image_name) in _ev
+                              or os.path.basename(c.image_name) + ".png" in _ev]
+            print(f"[banco] divisao fixa de {_fixa}: {len(test_cam_infos)} vistas retidas")
+        else:
+            # The test set will only be selected from the non-interpolated frames
+            test_cam_infos = [c for idx, c in enumerate(original_frames) if idx % llffhold == 0]
+
         # The rest of the frames will be used as training set
         test_names = set(c.image_name for c in test_cam_infos)
         train_cam_infos = [c for c in cam_infos if c.image_name not in test_names]
